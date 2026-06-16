@@ -1,0 +1,105 @@
+.app-shell-placeholder {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--surface-base);
+}
+
+.asp-card {
+  max-width: 460px;
+  width: 100%;
+  background: var(--surface-raised);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-xl);
+  padding: 48px 40px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.asp-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, hsl(194, 58%, 20%), hsl(194, 50%, 38%));
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  border: 1px solid hsl(194, 40%, 30%);
+  box-shadow: 0 4px 16px hsl(194, 55%, 20%, 0.40);
+}
+
+.asp-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.asp-subtitle {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.asp-coming {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  background: var(--surface-inset);
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-lg);
+  margin-top: 4px;
+}
+
+.asp-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.asp-feature-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-success);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-success) 20%, transparent);
+}
+
+.asp-feature-dot.pending {
+  background: var(--separator-strong);
+  box-shadow: none;
+}
+
+.asp-signout {
+  margin-top: 8px;
+  padding: 8px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--separator-strong);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--transition-base), background var(--transition-base);
+  min-height: 36px;
+}
+
+.asp-signout:hover {
+  color: var(--text-primary);
+  background: var(--control-hover);
+}

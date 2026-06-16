@@ -1,0 +1,6 @@
+services:
+  engram-api:
+    image: engram-api
+    build:
+      context: .
+      dockerfile: src/Engram.Api/Dockerfile
