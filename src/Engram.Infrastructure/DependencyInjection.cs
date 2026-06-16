@@ -1,3 +1,6 @@
+using Engram.Application.Auth;
+using Engram.Domain.Settings;
+using Engram.Infrastructure.Auth;
 using Engram.Infrastructure.Identity;
 using Engram.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -29,6 +32,11 @@ public static class DependencyInjection
             .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<AppDbContext>()
             .AddApiEndpoints();
+
+        // Register Auth configuration and custom services
+        services.Configure<AuthSettings>(configuration.GetSection("AuthSettings"));
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
         return services;
     }

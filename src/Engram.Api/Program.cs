@@ -1,7 +1,7 @@
+using Engram.Api.Endpoints;
+using Engram.Api.Extensions;
 using Engram.Infrastructure;
-using Engram.Infrastructure.Identity;
 using Engram.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -11,13 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignOutScheme = IdentityConstants.ApplicationScheme;
-});
-builder.Services.AddAuthorization();
+// Add custom JWT Authentication with cookies
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
@@ -39,6 +34,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGroup("/auth").MapIdentityApi<AppUser>();
+// Map custom Auth Minimal API
+app.MapAuthEndpoints();
 
 app.Run();
