@@ -158,51 +158,75 @@ font-family: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
 
 ---
 
-## 4. Blur, Vibrancy & Translucency
+## 4. Blur, Vibrancy & Translucency (Liquid Glass)
 
-The defining visual feature of macOS. Sidebars, toolbars, and popovers use translucent backgrounds with blur.
+The defining visual feature of macOS. Sidebars, toolbars, and popovers use translucent backgrounds with heavy blur. In macOS Sequoia, this is elevated to "Liquid Glass" — a design system emphasizing deeper saturation, dynamic reflections, and realistic physical material feel.
 
 **CSS implementation:**
 ```css
-/* Sidebar vibrancy */
+/* Sidebar vibrancy (Liquid Glass Light) */
 .sidebar {
-  background: rgba(246, 246, 246, 0.72);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background: rgba(246, 246, 246, 0.55);
+  backdrop-filter: saturate(210%) blur(30px);
+  -webkit-backdrop-filter: saturate(210%) blur(30px);
+  border-right: 0.5px solid rgba(0, 0, 0, 0.06);
 }
 
-/* Dark mode sidebar */
+/* Dark mode sidebar (Liquid Glass Dark) */
 @media (prefers-color-scheme: dark) {
   .sidebar {
-    background: rgba(30, 30, 30, 0.72);
+    background: rgba(26, 26, 26, 0.55);
+    backdrop-filter: saturate(240%) blur(35px);
+    -webkit-backdrop-filter: saturate(240%) blur(35px);
+    border-right: 0.5px solid rgba(255, 255, 255, 0.05);
   }
 }
 
-/* Quick-save panel / popover */
+/* Quick-save panel / popover (Liquid Glass Elevated Panel) */
 .floating-panel {
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border: 0.5px solid rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.70);
+  backdrop-filter: saturate(210%) blur(30px);
+  -webkit-backdrop-filter: saturate(210%) blur(30px);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 
+    0 0 0 0.5px rgba(0, 0, 0, 0.03), /* Edge highlight */
+    0 8px 32px rgba(0, 0, 0, 0.08),  /* Soft ambient shadow */
+    0 24px 64px rgba(0, 0, 0, 0.06); /* Deep occlusion shadow */
+}
+
+@media (prefers-color-scheme: dark) {
+  .floating-panel {
+    background: rgba(30, 30, 30, 0.70);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      0 0 0 0.5px rgba(255, 255, 255, 0.05),
+      0 8px 32px rgba(0, 0, 0, 0.25),
+      0 24px 64px rgba(0, 0, 0, 0.2);
+  }
 }
 ```
 
-**Where to use blur/vibrancy:**
+**Liquid Glass Design Principles:**
+- **Higher Saturation:** Use `saturate(210%)` to `saturate(240%)` for dark mode. This pulls background colors through the glass pane, preventing a dull, flat gray appearance.
+- **Physical Borders:** Always use subpixel borders (`0.5px`). In light mode, borders are low-opacity black (`rgba(0,0,0,0.06)`). In dark mode, borders use low-opacity white (`rgba(255,255,255,0.05)` to `0.08`) to act as a specular highlight on the edge.
+- **Dynamic Occlusion:** Shadows should consist of at least three layers: the edge ring (0.5px shadow), the medium card shadow, and a deep window occlusion shadow.
+
+**Where to use Liquid Glass:**
 - Sidebars
 - Top bars / toolbars
 - Floating panels and popovers
 - Quick-access windows (Spotlight-style)
 - Toast notifications
-- Floating action bars
+- Context menus and dropdowns
 
-**Where NOT to use blur:**
-- Main content area (this should be solid/opaque for readability)
-- Modal backgrounds (use a semi-transparent dark overlay instead)
-- Body text containers
+**Where NOT to use Liquid Glass:**
+- Main content area (keep it solid opaque for readability, e.g., `#FFFFFF` or `#1C1C1E`)
+- Text areas (inputs that contain small text should be opaque or have very subtle opacity to preserve readability)
+- Text color containers (always overlay text on well-defined backgrounds)
 
-**Saturation boost:** Apple's vibrancy includes `saturate(180%)` to keep colors from looking washed out behind the blur. Always include this.
+**Specular Highlights:** For buttons placed on glass, use a light inner shadow or border to give them physical volume.
+
 
 ---
 
