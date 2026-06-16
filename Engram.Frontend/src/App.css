@@ -1,1 +1,3 @@
-/* Global App styles — per-component styles live in their own .css files */
+/* App-level styles — intentionally empty.
+   All design tokens live in index.css.
+   Page-specific styles live in each page's CSS file. */

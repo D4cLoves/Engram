@@ -1,4 +1,4 @@
-import { useState, useRef, useId } from 'react'
+import { useState, useRef, useId, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -27,41 +27,60 @@ export function AuthPage() {
   useGSAP(
     () => {
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-      tl.from('.auth-logo', { scale: 0.8, autoAlpha: 0, duration: 0.4 })
-        .from('.auth-headline', { y: 14, autoAlpha: 0, duration: 0.4 }, '-=0.2')
-        .from('.auth-subline', { y: 10, autoAlpha: 0, duration: 0.35 }, '-=0.22')
-        .from('.auth-tab', { y: 8, autoAlpha: 0, duration: 0.3, stagger: 0.06 }, '-=0.2')
-        .from('.auth-field-group', { y: 12, autoAlpha: 0, duration: 0.35, stagger: 0.07 }, '-=0.15')
-        .from('.auth-submit', { y: 8, autoAlpha: 0, duration: 0.3 }, '-=0.1')
-        .from('.auth-footer-link', { autoAlpha: 0, duration: 0.25 }, '-=0.05')
+      tl.from('.auth-logo', { scale: 0.85, autoAlpha: 0, duration: 0.35 })
+        .from('.auth-headline', { y: 10, autoAlpha: 0, duration: 0.35 }, '-=0.15')
+        .from('.auth-subline', { y: 8, autoAlpha: 0, duration: 0.3 }, '-=0.18')
+        .from('.auth-tabs', { y: 8, autoAlpha: 0, duration: 0.3 }, '-=0.15')
+        .from('.auth-field-group', { y: 10, autoAlpha: 0, duration: 0.3, stagger: 0.06 }, '-=0.12')
+        .from('.auth-submit', { y: 6, autoAlpha: 0, duration: 0.25 }, '-=0.08')
+        .from('.auth-footer-link', { autoAlpha: 0, duration: 0.2 }, '-=0.05')
     },
     { scope: cardRef },
   )
 
-  // Animate form fields on mode switch
-  function switchMode(next: AuthMode) {
-    if (next === mode) return
-    setError(null)
+  // Animate form on mode switch — subtle cross-fade
+  const switchMode = useCallback(
+    (next: AuthMode) => {
+      if (next === mode) return
+      setError(null)
 
-    if (formRef.current) {
-      gsap.to(formRef.current, {
-        y: 6,
-        autoAlpha: 0,
-        duration: 0.18,
-        ease: 'power2.in',
-        onComplete: () => {
-          setMode(next)
-          gsap.fromTo(
-            formRef.current,
-            { y: 6, autoAlpha: 0 },
-            { y: 0, autoAlpha: 1, duration: 0.22, ease: 'power2.out' },
-          )
-        },
-      })
-    } else {
-      setMode(next)
-    }
-  }
+      if (formRef.current) {
+        gsap.to(formRef.current, {
+          y: 4,
+          autoAlpha: 0,
+          duration: 0.15,
+          ease: 'power2.in',
+          onComplete: () => {
+            setMode(next)
+            requestAnimationFrame(() => {
+              gsap.fromTo(
+                formRef.current,
+                { y: 4, autoAlpha: 0 },
+                { y: 0, autoAlpha: 1, duration: 0.2, ease: 'power2.out' },
+              )
+            })
+          },
+        })
+      } else {
+        setMode(next)
+      }
+    },
+    [mode],
+  )
+
+  // Shake animation on error
+  const shakeCard = useCallback(() => {
+    if (!cardRef.current) return
+    const target = cardRef.current.querySelector('.auth-card-inner')
+    if (!target) return
+
+    gsap.timeline()
+      .to(target, { x: -5, duration: 0.05, ease: 'none' })
+      .to(target, { x: 5, duration: 0.05, ease: 'none' })
+      .to(target, { x: -3, duration: 0.05, ease: 'none' })
+      .to(target, { x: 3, duration: 0.05, ease: 'none' })
+      .to(target, { x: 0, duration: 0.05, ease: 'none' })
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -73,8 +92,8 @@ export function AuthPage() {
     const password = data.get('password') as string
     const name = data.get('name') as string | undefined
 
-    // ── Задел для бека ────────────────────────────────────────────────────────
-    // При готовом бэкенде заменить на реальный fetch:
+    // ── Backend placeholder ──────────────────────────────────────────
+    // When backend is ready, replace with:
     //
     // const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register'
     // const body = mode === 'login'
@@ -90,19 +109,18 @@ export function AuthPage() {
     //
     // if (!response.ok) {
     //   const err = await response.json()
-    //   throw new Error(err.message ?? 'Ошибка аутентификации')
+    //   throw new Error(err.message ?? 'Authentication error')
     // }
     //
     // const { accessToken } = await response.json()
     // localStorage.setItem('engram_access_token', accessToken)
     // navigate('/app')
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────
 
-    // Временная заглушка: симулируем успешный вход
+    // Demo stub
     try {
       await new Promise<void>((resolve, reject) => {
         setTimeout(() => {
-          // Простая демонстрационная валидация
           if (!email.includes('@')) {
             reject(new Error('Введите корректный email'))
           } else if (password.length < 6) {
@@ -112,32 +130,29 @@ export function AuthPage() {
           } else {
             resolve()
           }
-        }, 900)
+        }, 800)
       })
 
       localStorage.setItem('engram_access_token', 'demo_token')
       navigate('/app')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Неизвестная ошибка')
-
-      // Shake animation on error
-      if (cardRef.current) {
-        const target = cardRef.current.querySelector('.auth-card-inner')
-        gsap.timeline()
-          .to(target, { x: -6, duration: 0.06, ease: 'none' })
-          .to(target, { x: 6, duration: 0.06, ease: 'none' })
-          .to(target, { x: -4, duration: 0.06, ease: 'none' })
-          .to(target, { x: 4, duration: 0.06, ease: 'none' })
-          .to(target, { x: 0, duration: 0.06, ease: 'none' })
-      }
+      shakeCard()
     } finally {
       setLoading(false)
     }
   }
 
+  // Handle Enter key on form
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      navigate('/')
+    }
+  }, [navigate])
+
   return (
-    <div className="auth-page" ref={cardRef}>
-      {/* Background neural pattern */}
+    <div className="auth-page" ref={cardRef} onKeyDown={handleKeyDown}>
+      {/* Background ambient light */}
       <div className="auth-bg" aria-hidden="true">
         <div className="auth-bg-orb auth-bg-orb-1" />
         <div className="auth-bg-orb auth-bg-orb-2" />
@@ -167,7 +182,7 @@ export function AuthPage() {
           </p>
         </div>
 
-        {/* Mode Tabs */}
+        {/* Mode Tabs (segmented control) */}
         <div className="auth-tabs" role="tablist" aria-label="Режим аутентификации">
           <button
             type="button"
@@ -177,7 +192,7 @@ export function AuthPage() {
             id="auth-tab-login"
             onClick={() => switchMode('login')}
           >
-            Войти
+            Вход
           </button>
           <button
             type="button"
@@ -208,9 +223,7 @@ export function AuthPage() {
         >
           {mode === 'register' && (
             <div className="auth-field-group">
-              <label className="auth-label" htmlFor={nameId}>
-                Имя
-              </label>
+              <label className="auth-label" htmlFor={nameId}>Имя</label>
               <input
                 id={nameId}
                 name="name"
@@ -224,9 +237,7 @@ export function AuthPage() {
           )}
 
           <div className="auth-field-group">
-            <label className="auth-label" htmlFor={emailId}>
-              Email
-            </label>
+            <label className="auth-label" htmlFor={emailId}>Email</label>
             <input
               id={emailId}
               name="email"
@@ -239,9 +250,7 @@ export function AuthPage() {
           </div>
 
           <div className="auth-field-group">
-            <label className="auth-label" htmlFor={passwordId}>
-              Пароль
-            </label>
+            <label className="auth-label" htmlFor={passwordId}>Пароль</label>
             <input
               id={passwordId}
               name="password"
@@ -269,6 +278,14 @@ export function AuthPage() {
             )}
           </button>
         </form>
+
+        {/* Keyboard hint */}
+        <div className="auth-kbd-hint">
+          <span className="auth-kbd">Esc</span>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 4 }}>
+            — вернуться
+          </span>
+        </div>
 
         <p className="auth-footer-link">
           {mode === 'login' ? (

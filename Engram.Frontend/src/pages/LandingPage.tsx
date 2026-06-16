@@ -7,52 +7,56 @@ import './LandingPage.css'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
+/* ─── Data ─── */
+
 const features = [
   {
     icon: '⬡',
     title: 'Knowledge Atoms',
     description:
-      'Система извлекает из источника не пересказ, а конкретные атомы знания — короткие, самостоятельные, типизированные единицы.',
+      'Из источника извлекаются конкретные атомы знания — короткие, типизированные единицы с источником и уверенностью.',
   },
   {
-    icon: '◈',
+    icon: '⚡',
     title: 'Content Pipeline',
     description:
-      'Текст проходит автоматическую очистку, разбиение и обработку ИИ. Вы видите каждый шаг и его результат.',
+      'Текст проходит автоматическую очистку, разбиение и обработку ИИ. Каждый шаг прозрачен и контролируем.',
   },
   {
-    icon: '⬡',
+    icon: '📥',
     title: 'Atom Inbox',
     description:
-      'Найденные атомы попадают во входящие. Принять, отредактировать, отклонить — полный контроль над базой знаний.',
+      'Найденные атомы попадают во входящие. Принять, отредактировать, отклонить — полный контроль.',
   },
   {
-    icon: '◈',
+    icon: '🔗',
     title: 'Knowledge Graph',
     description:
       'Принятые атомы соединяются в граф: связи, зависимости, кластеры по теме.',
   },
   {
-    icon: '⬡',
+    icon: '🧠',
     title: 'SRS Review',
     description:
-      'Каждый атом получает SRS-расписание. Система напоминает повторять именно то, что начинает забываться.',
+      'Каждый атом получает SRS-расписание. Система напоминает повторять то, что начинает забываться.',
   },
   {
-    icon: '◈',
+    icon: '📊',
     title: 'Retention Analytics',
     description:
       'Аналитика памяти: какие темы вы помните, какие нет, как меняется retention со временем.',
   },
 ]
 
+const pipelineSteps = ['Источник', 'Очистка', 'Разбиение', 'Атомы', 'Граф', 'SRS']
+
 const atomTypes = [
-  { type: 'Definition', color: 'var(--atom-definition)' },
-  { type: 'Claim', color: 'var(--atom-claim)' },
-  { type: 'Technique', color: 'var(--atom-technique)' },
-  { type: 'Warning', color: 'var(--atom-warning)' },
-  { type: 'Example', color: 'var(--atom-example)' },
-  { type: 'Question', color: 'var(--atom-question)' },
+  { type: 'Definition', label: 'Определение' },
+  { type: 'Claim', label: 'Утверждение' },
+  { type: 'Technique', label: 'Техника' },
+  { type: 'Warning', label: 'Предупреждение' },
+  { type: 'Example', label: 'Пример' },
+  { type: 'Question', label: 'Вопрос' },
 ]
 
 const exampleAtoms = [
@@ -82,14 +86,9 @@ const exampleAtoms = [
   },
 ]
 
-export function LandingPage() {
-  const heroRef = useRef<HTMLDivElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const featuresRef = useRef<HTMLDivElement>(null)
-  const atomsRef = useRef<HTMLDivElement>(null)
-  const ctaRef = useRef<HTMLDivElement>(null)
+/* ─── Neural canvas animation ─── */
 
-  // Neural network canvas animation
+function useNeuralCanvas(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -105,8 +104,7 @@ export function LandingPage() {
     resize()
     window.addEventListener('resize', resize)
 
-    // Nodes
-    const nodeCount = 60
+    const nodeCount = 50
     const nodes: { x: number; y: number; vx: number; vy: number; r: number; pulse: number }[] = []
     const W = () => canvas.offsetWidth
     const H = () => canvas.offsetHeight
@@ -115,30 +113,27 @@ export function LandingPage() {
       nodes.push({
         x: Math.random() * W(),
         y: Math.random() * H(),
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        r: Math.random() * 1.5 + 0.5,
+        vx: (Math.random() - 0.5) * 0.25,
+        vy: (Math.random() - 0.5) * 0.25,
+        r: Math.random() * 1.2 + 0.4,
         pulse: Math.random() * Math.PI * 2,
       })
     }
 
     let raf: number
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const rgb = isDark ? '10, 132, 255' : '0, 122, 255'
 
     const draw = () => {
       ctx.clearRect(0, 0, W(), H())
 
-      // Update nodes
       for (const n of nodes) {
         n.x += n.vx
         n.y += n.vy
-        n.pulse += 0.02
+        n.pulse += 0.015
         if (n.x < 0 || n.x > W()) n.vx *= -1
         if (n.y < 0 || n.y > H()) n.vy *= -1
       }
-
-      const lineColor = isDark ? '79, 156, 173' : '47, 111, 126'
-      const nodeColor = isDark ? '79, 156, 173' : '47, 111, 126'
 
       // Connections
       for (let i = 0; i < nodes.length; i++) {
@@ -146,10 +141,10 @@ export function LandingPage() {
           const dx = nodes[i].x - nodes[j].x
           const dy = nodes[i].y - nodes[j].y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < 120) {
-            const alpha = (1 - dist / 120) * 0.18
-            ctx.strokeStyle = `rgba(${lineColor}, ${alpha})`
-            ctx.lineWidth = 0.7
+          if (dist < 140) {
+            const alpha = (1 - dist / 140) * 0.12
+            ctx.strokeStyle = `rgba(${rgb}, ${alpha})`
+            ctx.lineWidth = 0.5
             ctx.beginPath()
             ctx.moveTo(nodes[i].x, nodes[i].y)
             ctx.lineTo(nodes[j].x, nodes[j].y)
@@ -160,10 +155,10 @@ export function LandingPage() {
 
       // Nodes
       for (const n of nodes) {
-        const pulsedR = n.r + Math.sin(n.pulse) * 0.4
+        const pulsedR = n.r + Math.sin(n.pulse) * 0.3
         ctx.beginPath()
         ctx.arc(n.x, n.y, pulsedR, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(${nodeColor}, 0.55)`
+        ctx.fillStyle = `rgba(${rgb}, 0.35)`
         ctx.fill()
       }
 
@@ -175,29 +170,55 @@ export function LandingPage() {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
     }
-  }, [])
+  }, [canvasRef])
+}
 
-  // Hero entrance
+/* ─── Component ─── */
+
+export function LandingPage() {
+  const heroRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const featuresRef = useRef<HTMLDivElement>(null)
+  const atomsRef = useRef<HTMLDivElement>(null)
+  const ctaRef = useRef<HTMLDivElement>(null)
+
+  useNeuralCanvas(canvasRef)
+
+  // Hero entrance — staggered fade-up
   useGSAP(
     () => {
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-      tl.from('.hero-eyebrow', { y: 16, autoAlpha: 0, duration: 0.5 })
-        .from('.hero-title', { y: 24, autoAlpha: 0, duration: 0.6 }, '-=0.3')
-        .from('.hero-subtitle', { y: 16, autoAlpha: 0, duration: 0.5 }, '-=0.35')
-        .from('.hero-actions', { y: 12, autoAlpha: 0, duration: 0.4 }, '-=0.25')
-        .from('.hero-badge', { scale: 0.9, autoAlpha: 0, duration: 0.35, stagger: 0.08 }, '-=0.2')
+      tl.from('.hero-eyebrow', { y: 12, autoAlpha: 0, duration: 0.5 })
+        .from('.hero-title', { y: 20, autoAlpha: 0, duration: 0.6 }, '-=0.3')
+        .from('.hero-subtitle', { y: 14, autoAlpha: 0, duration: 0.5 }, '-=0.35')
+        .from('.hero-actions', { y: 10, autoAlpha: 0, duration: 0.4 }, '-=0.25')
+        .from('.hero-badge', { scale: 0.92, autoAlpha: 0, duration: 0.3, stagger: 0.06 }, '-=0.2')
     },
     { scope: heroRef },
   )
 
-  // Features scroll
+  // Pipeline — subtle slide-up on scroll
+  useGSAP(() => {
+    gsap.from('.pipeline-flow', {
+      y: 20,
+      autoAlpha: 0,
+      duration: 0.6,
+      ease: 'power2.out',
+      scrollTrigger: {
+        trigger: '.pipeline-section',
+        start: 'top 80%',
+      },
+    })
+  })
+
+  // Features — stagger in
   useGSAP(
     () => {
       gsap.from('.feature-card', {
-        y: 28,
+        y: 24,
         autoAlpha: 0,
-        duration: 0.5,
-        stagger: 0.08,
+        duration: 0.45,
+        stagger: 0.07,
         ease: 'power2.out',
         scrollTrigger: {
           trigger: featuresRef.current,
@@ -208,14 +229,14 @@ export function LandingPage() {
     { scope: featuresRef },
   )
 
-  // Atoms scroll
+  // Atoms — slide from left
   useGSAP(
     () => {
       gsap.from('.atom-demo-card', {
-        x: -20,
+        x: -16,
         autoAlpha: 0,
-        duration: 0.45,
-        stagger: 0.1,
+        duration: 0.4,
+        stagger: 0.09,
         ease: 'power2.out',
         scrollTrigger: {
           trigger: atomsRef.current,
@@ -226,13 +247,13 @@ export function LandingPage() {
     { scope: atomsRef },
   )
 
-  // CTA scroll
+  // CTA — fade up
   useGSAP(
     () => {
       gsap.from('.cta-inner', {
-        y: 20,
+        y: 16,
         autoAlpha: 0,
-        duration: 0.55,
+        duration: 0.5,
         ease: 'power2.out',
         scrollTrigger: {
           trigger: ctaRef.current,
@@ -245,7 +266,7 @@ export function LandingPage() {
 
   return (
     <div className="landing">
-      {/* ─── Nav ─── */}
+      {/* ─── Navigation ─── */}
       <header className="landing-nav" role="banner">
         <div className="nav-inner">
           <div className="nav-brand" aria-label="Engram">
@@ -267,6 +288,9 @@ export function LandingPage() {
       {/* ─── Hero ─── */}
       <section className="hero" ref={heroRef} aria-labelledby="hero-title">
         <canvas className="hero-canvas" ref={canvasRef} aria-hidden="true" />
+        <div className="hero-glow hero-glow-1" aria-hidden="true" />
+        <div className="hero-glow hero-glow-2" aria-hidden="true" />
+
         <div className="hero-content">
           <p className="hero-eyebrow">Система знаний нового поколения</p>
           <h1 className="hero-title" id="hero-title">
@@ -274,26 +298,20 @@ export function LandingPage() {
             <span className="hero-title-accent">в живые знания</span>
           </h1>
           <p className="hero-subtitle">
-            Engram извлекает из ваших источников структурированные атомы знания,<br />
-            строит граф связей и помогает не забывать то, что важно.
+            Engram извлекает из ваших источников структурированные атомы знания,
+            строит граф связей и помогает не забывать важное.
           </p>
           <div className="hero-actions">
-            <Link to="/auth?mode=register" className="btn-primary-lg" id="hero-cta-register">
+            <Link to="/auth?mode=register" className="btn-primary" id="hero-cta-register">
               Начать бесплатно
             </Link>
-            <a href="#how-it-works" className="btn-ghost-lg">
-              Как это работает →
+            <a href="#how-it-works" className="btn-secondary">
+              Как это работает
             </a>
           </div>
-          <div className="hero-badges" aria-label="Поддерживаемые типы атомов">
+          <div className="hero-badges" aria-label="Типы атомов">
             {atomTypes.map((a) => (
-              <span
-                key={a.type}
-                className="hero-badge"
-                style={{ '--badge-color': a.color } as React.CSSProperties}
-              >
-                {a.type}
-              </span>
+              <span key={a.type} className="hero-badge">{a.label}</span>
             ))}
           </div>
         </div>
@@ -309,8 +327,8 @@ export function LandingPage() {
               Каждый источник проходит автоматический конвейер и превращается в структурированную базу атомов.
             </p>
           </div>
-          <div className="pipeline-flow" aria-label="Processing pipeline steps">
-            {['Источник', 'Очистка', 'Разбиение', 'Атомы', 'Граф', 'SRS'].map((step, i, arr) => (
+          <div className="pipeline-flow" aria-label="Pipeline steps">
+            {pipelineSteps.map((step, i, arr) => (
               <div key={step} className="pipeline-flow-item">
                 <div className="pipeline-step">
                   <span className="pipeline-step-num">{i + 1}</span>
@@ -368,7 +386,7 @@ export function LandingPage() {
                 <h3 className="atom-demo-title">{atom.title}</h3>
                 <p className="atom-demo-content">{atom.content}</p>
                 <footer className="atom-demo-footer">
-                  <span className="atom-demo-source">↑ {atom.source}</span>
+                  <span className="atom-demo-source">↗ {atom.source}</span>
                 </footer>
               </article>
             ))}
@@ -386,7 +404,7 @@ export function LandingPage() {
             <p className="cta-subtitle">
               Добавьте первый источник и посмотрите, как Engram извлекает атомы.
             </p>
-            <Link to="/auth?mode=register" className="btn-primary-lg" id="cta-register-btn">
+            <Link to="/auth?mode=register" className="btn-primary" id="cta-register-btn">
               Создать аккаунт
             </Link>
           </div>
@@ -395,9 +413,9 @@ export function LandingPage() {
 
       {/* ─── Footer ─── */}
       <footer className="landing-footer" role="contentinfo">
-        <div className="nav-inner">
+        <div className="footer-inner">
           <div className="footer-brand">
-            <div className="nav-logo small" aria-hidden="true">E</div>
+            <div className="nav-logo" aria-hidden="true" style={{ width: 18, height: 18, fontSize: 11 }}>E</div>
             <span>Engram</span>
           </div>
           <p className="footer-copy">
