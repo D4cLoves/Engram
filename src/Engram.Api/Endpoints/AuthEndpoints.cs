@@ -1,12 +1,8 @@
-using System.Security.Cryptography;
+using Engram.Api.Extensions;
 using Engram.Application.Auth;
-using Engram.Domain.Entities;
+using Engram.Application.Common.Interfaces;
 using Engram.Domain.Settings;
-using Engram.Infrastructure.Identity;
-using Engram.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace Engram.Api.Endpoints;
@@ -19,14 +15,13 @@ public static class AuthEndpoints
 
         group.MapPost("/register", async (
             [FromBody] RegisterRequest request,
-            UserManager<AppUser> userManager) =>
+            IIdentityService identityService) =>
         {
-            var user = new AppUser { UserName = request.Email, Email = request.Email };
-            var result = await userManager.CreateAsync(user, request.Password);
+            var result = await identityService.RegisterAsync(request.Email, request.Password);
 
-            if (!result.Succeeded)
+            if (result.IsFailure)
             {
-                return Results.BadRequest(result.Errors);
+                return result.ToProblemDetails();
             }
 
             return Results.Ok(new { Message = "User registered successfully." });
@@ -34,46 +29,24 @@ public static class AuthEndpoints
 
         group.MapPost("/login", async (
             [FromBody] LoginRequest request,
-            UserManager<AppUser> userManager,
-            IJwtTokenService jwtService,
-            IRefreshTokenService refreshService,
-            AppDbContext dbContext,
+            IIdentityService identityService,
             IOptions<AuthSettings> authSettings,
             HttpContext httpContext) =>
         {
-            var user = await userManager.FindByEmailAsync(request.Email);
-            if (user == null || !await userManager.CheckPasswordAsync(user, request.Password))
+            var result = await identityService.LoginAsync(request.Email, request.Password);
+
+            if (result.IsFailure)
             {
-                return Results.Unauthorized();
+                return result.ToProblemDetails();
             }
 
-            var roles = await userManager.GetRolesAsync(user);
-            var accessToken = jwtService.GenerateToken(user.Id.ToString(), user.Email ?? string.Empty, roles);
+            SetTokenCookies(httpContext, result.Value.AccessToken, result.Value.RefreshToken, authSettings.Value);
 
-            var refreshToken = refreshService.CreateRefreshToken();
-            var refreshHash = refreshService.HashRefreshToken(refreshToken);
-
-            dbContext.RefreshTokens.Add(new RefreshToken
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                TokenHash = refreshHash,
-                CreatedAtUtc = DateTime.UtcNow,
-                ExpiresAtUtc = DateTime.UtcNow.Add(authSettings.Value.RefreshExpires)
-            });
-
-            await dbContext.SaveChangesAsync();
-
-            SetTokenCookies(httpContext, accessToken, refreshToken, authSettings.Value);
-
-            return Results.Ok(new { UserId = user.Id, Email = user.Email });
+            return Results.Ok(new { Message = "Logged in successfully." });
         });
 
         group.MapPost("/refresh", async (
-            IRefreshTokenService refreshService,
-            IJwtTokenService jwtService,
-            UserManager<AppUser> userManager,
-            AppDbContext dbContext,
+            IIdentityService identityService,
             IOptions<AuthSettings> authSettings,
             HttpContext httpContext) =>
         {
@@ -83,83 +56,27 @@ public static class AuthEndpoints
                 return Results.Unauthorized();
             }
 
-            var refreshHash = refreshService.HashRefreshToken(refreshToken);
-            var existing = await dbContext.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == refreshHash);
+            var result = await identityService.RefreshAsync(refreshToken);
 
-            if (existing == null)
+            if (result.IsFailure)
             {
-                return Results.Unauthorized();
-            }
-
-            // Reuse Detection (Token Hijacking Warning)
-            if (existing.RevokedAtUtc is not null)
-            {
-                // Revoke all tokens for this compromised user
-                var activeTokens = await dbContext.RefreshTokens
-                    .Where(t => t.UserId == existing.UserId && t.RevokedAtUtc == null)
-                    .ToListAsync();
-
-                foreach (var token in activeTokens)
-                {
-                    token.RevokedAtUtc = DateTime.UtcNow;
-                }
-
-                await dbContext.SaveChangesAsync();
                 ClearTokenCookies(httpContext);
-                return Results.Unauthorized();
+                return result.ToProblemDetails();
             }
 
-            if (existing.ExpiresAtUtc <= DateTime.UtcNow)
-            {
-                return Results.Unauthorized();
-            }
+            SetTokenCookies(httpContext, result.Value.AccessToken, result.Value.RefreshToken, authSettings.Value);
 
-            var user = await userManager.FindByIdAsync(existing.UserId.ToString());
-            if (user == null)
-            {
-                return Results.Unauthorized();
-            }
-
-            var roles = await userManager.GetRolesAsync(user);
-            var newAccessToken = jwtService.GenerateToken(user.Id.ToString(), user.Email ?? string.Empty, roles);
-
-            // Rotate tokens
-            existing.RevokedAtUtc = DateTime.UtcNow;
-
-            var newRefreshToken = refreshService.CreateRefreshToken();
-            var newRefreshHash = refreshService.HashRefreshToken(newRefreshToken);
-            existing.ReplacedByTokenHash = newRefreshHash;
-
-            dbContext.RefreshTokens.Add(new RefreshToken
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                TokenHash = newRefreshHash,
-                CreatedAtUtc = DateTime.UtcNow,
-                ExpiresAtUtc = DateTime.UtcNow.Add(authSettings.Value.RefreshExpires)
-            });
-
-            await dbContext.SaveChangesAsync();
-
-            SetTokenCookies(httpContext, newAccessToken, newRefreshToken, authSettings.Value);
-
-            return Results.Ok(new { UserId = user.Id, Email = user.Email });
+            return Results.Ok(new { Message = "Token refreshed successfully." });
         });
 
         group.MapPost("/logout", async (
-            AppDbContext dbContext,
+            IIdentityService identityService,
             HttpContext httpContext) =>
         {
             var refreshToken = httpContext.Request.Cookies["engram_refresh_token"];
             if (!string.IsNullOrWhiteSpace(refreshToken))
             {
-                var refreshHash = SHA256Hash(refreshToken);
-                var existing = await dbContext.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == refreshHash);
-                if (existing != null)
-                {
-                    existing.RevokedAtUtc = DateTime.UtcNow;
-                    await dbContext.SaveChangesAsync();
-                }
+                await identityService.LogoutAsync(refreshToken);
             }
 
             ClearTokenCookies(httpContext);
@@ -193,11 +110,5 @@ public static class AuthEndpoints
     {
         context.Response.Cookies.Delete("engram_access_token");
         context.Response.Cookies.Delete("engram_refresh_token");
-    }
-
-    private static string SHA256Hash(string input)
-    {
-        var bytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input));
-        return Convert.ToBase64String(bytes);
     }
 }

@@ -1,4 +1,5 @@
 using Engram.Application.Auth;
+using Engram.Application.Common.Interfaces;
 using Engram.Domain.Settings;
 using Engram.Infrastructure.Auth;
 using Engram.Infrastructure.Identity;
@@ -37,6 +38,7 @@ public static class DependencyInjection
         services.Configure<AuthSettings>(configuration.GetSection("AuthSettings"));
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IIdentityService, IdentityService>();
 
         return services;
     }
